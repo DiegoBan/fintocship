@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Carrito - FintocShip</title>
+    <script src="https://js.fintoc.com/v1/"></script>
+    
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn { padding: 10px 20px; text-decoration: none; background: #000; color: #fff; border-radius: 5px; cursor: pointer; border: none; font-size: 16px;}
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-secondary { background: #eee; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+        .total-container { text-align: right; margin-top: 20px; font-size: 1.5em; font-weight: bold; }
+        .empty-msg { text-align: center; color: #666; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Tu Carrito</h1>
+        <a href="/" class="btn btn-secondary">← Volver a la Tienda</a>
+    </div>
+
+    <div id="carrito-contenido">
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Precio Unit.</th>
+                    <th>Cantidad</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody id="lista-items">
+                </tbody>
+        </table>
+
+        <div class="total-container">
+            Total: <span id="total-precio">$0</span>
+        </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+            <button onclick="pagar()" class="btn">Ir a Pagar con Fintoc</button>
+        </div>
+    </div>
+
+    <script>
+        // Formateador de pesos chilenos
+        const clp = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' });
+
+        async function cargarCarrito() {
+            try {
+                const res = await fetch('/api/carrito');
+                const items = await res.json();
+                
+                const tbody = document.getElementById('lista-items');
+                const totalSpan = document.getElementById('total-precio');
+                let totalAcumulado = 0;
+
+                tbody.innerHTML = ''; 
+
+                if (items.length === 0) {
+                    document.getElementById('carrito-contenido').innerHTML = '<h3 class="empty-msg">Tu carrito está vacío 🛒</h3>';
+                    return;
+                }
+
+                items.forEach(item => {
+                    const subtotal = item.precio * item.cantidad;
+                    totalAcumulado += subtotal;
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${item.nombre}</td>
+                            <td>${clp.format(item.precio)}</td>
+                            <td>${item.cantidad}</td>
+                            <td>${clp.format(subtotal)}</td>
+                        </tr>
+                    `;
+                });
+
+                totalSpan.innerText = clp.format(totalAcumulado);
+
+            } catch (error) {
+                console.error("Error cargando carrito:", error);
+            }
+        }
+
+        // --- LÓGICA DE PAGO FINTOC ---
+        async function pagar() {
+            const btn = document.querySelector('button[onclick="pagar()"]');
+            btn.innerText = "Cargando...";
+            btn.disabled = true;
+
+            try {
+                // 1. Pedimos el token al backend
+                const response = await fetch('/api/crear-pago', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // 2. Abrimos el widget con el token recibido
+                const widget = Fintoc.create({
+                    widgetToken: data.widget_token,
+                    onSuccess: () => {
+                        alert('¡Pago Exitoso! 💰');
+                        window.location.href = '/'; // Reinicia o vacía el carrito aquí
+                    },
+                    onExit: () => {
+                        console.log('Usuario cerró el widget');
+                        btn.innerText = "Ir a Pagar con Fintoc";
+                        btn.disabled = false;
+                    }
+                });
+
+                widget.open();
+
+            } catch (error) {
+                console.error(error);
+                alert('Error: ' + error.message);
+                btn.innerText = "Ir a Pagar con Fintoc";
+                btn.disabled = false;
+            }
+        }
+
+        // Cargar productos al abrir
+        cargarCarrito();
+    </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FintocShip</title>
+    <style>
+        body { font-family: sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card img { max-width: 100%; height: 150px; object-fit: contain; background: #f9f9f9; margin-bottom: 10px; }
+        .price { font-weight: bold; color: #2c3e50; font-size: 1.2em; }
+        button { background-color: #000; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 10px; }
+        button:hover { background-color: #333; }
+        .btn-cart { background: white; color: black; border: 2px solid black; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📦 FintocShip</h1>
+        <a href="/carrito.html" class="btn-cart">Ver Carrito 🛒</a>
+    </header>
+
+    <div id="lista-productos" class="grid"></div>
+
+    <script>
+        const clp = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' });
+
+        fetch('/api/productos')
+            .then(res => res.json())
+            .then(productos => {
+                const div = document.getElementById('lista-productos');
+                productos.forEach(prod => {
+                    // Usamos una imagen por defecto si viene vacía
+                    const imagen = prod.img || 'https://via.placeholder.com/150?text=Producto';
+                    
+                    div.innerHTML += `
+                        <div class="card">
+                            <img src="${imagen}" alt="${prod.nombre}">
+                            <h3>${prod.nombre}</h3>
+                            <p class="price">${clp.format(prod.precio)}</p>
+                            <button onclick="agregar(${prod.id})">Agregar al Carrito</button>
+                        </div>
+                    `;
+                });
+            });
+
+        function agregar(id) {
+            fetch('/api/carrito', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id_prod: id, cantidad: 1 })
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Feedback visual simple
+                alert('Producto agregado al carrito ✅');
+            })
+            .catch(err => console.error(err));
+        }
+    </script>
+</body>
+</html>
