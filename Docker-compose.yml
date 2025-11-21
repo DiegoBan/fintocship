@@ -1,0 +1,42 @@
+services: #FRONTEND
+  react-app:
+    container_name: fintoc-client-general
+    build: ./client
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    stdin_open: true
+    tty: true
+  
+  postgres: #BASE DE DATOS
+    image: postgres:15
+    container_name: fintoc-postgres-general
+    restart: always
+    environment:
+      POSTGRES_USER: fintoc
+      POSTGRES_PASSWORD: fintoc
+      POSTGRES_DB: fintoc
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_general:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+
+  server: #BACKEND
+    build: ./server
+    container_name: fintoc-server-general
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+volumes:
+  postgres_data_general:

@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: fintoc-db
+    restart: always
+    environment:
+      POSTGRES_USER: fintoc
+      POSTGRES_PASSWORD: fintoc
+      POSTGRES_DB: fintoc
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    networks:
+      - fintoc-network
+
+volumes:
+  postgres_data:
+
+networks:
+  fintoc-network:
+    driver: bridge
