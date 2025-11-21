@@ -17,8 +17,10 @@ CREATE TABLE IF NOT EXISTS productos (
 );
 
 CREATE TABLE IF NOT EXISTS carrito (
+    id SERIAL PRIMARY KEY,
     user_cookie TEXT,
     id_prod INTEGER NOT NULL,
     cantidad NUMERIC(4),
-    CONSTRAINT FK_id_prod FOREIGN KEY (id_prod) REFERENCES productos(id)
+    CONSTRAINT FK_id_prod FOREIGN KEY (id_prod) REFERENCES productos(id),
+    CONSTRAINT unique_producto_usuario UNIQUE (user_cookie, id_prod)
 );

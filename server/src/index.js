@@ -9,11 +9,6 @@ const port = 3000;
 app.use(express.json());
 app.use(cookieParser());
 
-//  Rutas
-
-
-//  Configuracion
-
 const pool = new Pool({
   user: 'fintoc',
   host: 'postgres', // Nombre del servicio en docker-compose
@@ -50,6 +45,63 @@ app.get('/', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send('Error conectando a la DB');
+  }
+});
+
+//  Algunas rutas
+
+// GET: Obtener todos los productos
+app.get('/api/productos', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM productos');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error al obtener productos');
+  }
+});
+
+// POST: Agregar al carrito
+app.post('/api/carrito', async (req, res) => {
+  const { id_prod, cantidad } = req.body;
+  const userCookie = req.userCookie; // Viene del middleware que creamos antes
+
+  try {
+    // 1. Verificar stock (Opcional pero recomendado)
+    // 2. Insertar en carrito
+    const query = `
+      INSERT INTO carrito (user_cookie, id_prod, cantidad)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `;
+    const values = [userCookie, id_prod, cantidad];
+    const result = await pool.query(query, values);
+    
+    res.json({ mensaje: 'Producto agregado', item: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error al agregar al carrito');
+  }
+});
+
+// GET: Ver mi carrito
+app.post('/api/carrito', async (req, res) => {
+  const { id_prod, cantidad } = req.body;
+  const userCookie = req.userCookie;
+  try {
+    const query = `
+      INSERT INTO carrito (user_cookie, id_prod, cantidad)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_cookie, id_prod) 
+      DO UPDATE SET cantidad = carrito.cantidad + EXCLUDED.cantidad
+      RETURNING *;
+    `;
+    const values = [userCookie, id_prod, cantidad];
+    const result = await pool.query(query, values);
+    res.json({ mensaje: 'Carrito actualizado', item: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error al actualizar el carrito');
   }
 });
 

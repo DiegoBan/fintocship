@@ -1,5 +1,5 @@
-services: #FRONTEND
-  react-app:
+services:
+  react-app: #  FRONTEND
     container_name: fintoc-client-general
     build: ./client
     ports:
